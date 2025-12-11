@@ -7,20 +7,20 @@ Just procedural silence removal, audio normalization, and LLM-generated metadata
 
 Usage:
     # Using Ollama (free, local - default)
-    python3 execution/simple_video_edit.py \
+    python3 simple-edit/simple_video_edit.py \
         --video .tmp/my_video.mp4 \
         --title "My Video Title" \
         --no-upload
 
     # Using Anthropic Claude (paid API)
-    python3 execution/simple_video_edit.py \
+    python3 simple-edit/simple_video_edit.py \
         --video .tmp/my_video.mp4 \
         --title "My Video Title" \
         --llm anthropic \
         --no-upload
 
     # With custom Ollama model
-    python3 execution/simple_video_edit.py \
+    python3 simple-edit/simple_video_edit.py \
         --video .tmp/my_video.mp4 \
         --title "Test" \
         --ollama-model mistral \
