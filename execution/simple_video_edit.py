@@ -3,22 +3,38 @@
 Simple video editing: FFmpeg silence detection/cutting + metadata generation.
 
 No AI-based silence decisions, no filler detection, no voice commands.
-Just procedural silence removal, audio normalization, and Claude-generated metadata.
+Just procedural silence removal, audio normalization, and LLM-generated metadata.
 
 Usage:
+    # Using Ollama (free, local - default)
     python3 execution/simple_video_edit.py \
         --video .tmp/my_video.mp4 \
-        --title "My Video Title"
+        --title "My Video Title" \
+        --no-upload
 
-    # Local only (no upload)
+    # Using Anthropic Claude (paid API)
+    python3 execution/simple_video_edit.py \
+        --video .tmp/my_video.mp4 \
+        --title "My Video Title" \
+        --llm anthropic \
+        --no-upload
+
+    # With custom Ollama model
     python3 execution/simple_video_edit.py \
         --video .tmp/my_video.mp4 \
         --title "Test" \
+        --ollama-model mistral \
         --no-upload
 
 Output:
     - Edited video: .tmp/{original_name}_edited.mp4
     - Metadata file: .tmp/{original_name}_metadata.txt
+
+Environment Variables:
+    LLM_BACKEND      - Default LLM backend: "ollama" (default) or "anthropic"
+    OLLAMA_MODEL     - Default Ollama model (default: llama3:8b)
+    ANTHROPIC_API_KEY - Required only if using --llm anthropic
+    AUPHONIC_API_KEY  - Required for uploading to YouTube via Auphonic
 """
 
 import argparse
@@ -30,7 +46,6 @@ import sys
 import time
 from pathlib import Path
 
-import anthropic
 import requests
 from dotenv import load_dotenv
 
@@ -39,6 +54,10 @@ load_dotenv()
 # API keys
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 AUPHONIC_API_KEY = os.getenv("AUPHONIC_API_KEY")
+
+# LLM backend configuration
+LLM_BACKEND = os.getenv("LLM_BACKEND", "ollama")  # "ollama" or "anthropic"
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:8b")
 
 # Auphonic config
 AUPHONIC_PRESET_UUID = "8YdWMdfF2QXpdZ2mDuUugj"
@@ -232,20 +251,21 @@ def generate_metadata(
     words: list[dict],
     cuts: list[tuple[float, float]],
     duration: float,
-    title: str
+    title: str,
+    llm_backend: str = None
 ) -> dict:
     """
-    Generate YouTube summary and chapters using Claude.
+    Generate YouTube summary and chapters using LLM (Ollama or Anthropic).
     Returns dict with {title, summary, chapters}.
     """
+    backend = llm_backend or LLM_BACKEND
+
     if not words:
         return {
             "title": title,
             "summary": "Video content.",
             "chapters": "00:00:00 Introduction"
         }
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     # Group words into ~30 second chunks
     chunks = []
@@ -295,14 +315,38 @@ Chapter guidelines:
 
 Return ONLY the JSON, no other text."""
 
-    print("Generating metadata with Claude...")
-    response = client.messages.create(
-        model="claude-opus-4-5-20251101",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    response_text = response.content[0].text.strip()
+    # Call LLM based on backend
+    if backend == "ollama":
+        print(f"Generating metadata with Ollama ({OLLAMA_MODEL})...")
+        try:
+            import ollama
+            response = ollama.chat(
+                model=OLLAMA_MODEL,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            response_text = response['message']['content'].strip()
+        except ImportError:
+            print("Error: 'ollama' package not installed. Run: pip install ollama")
+            print("Or use --llm anthropic to use Anthropic API instead.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error calling Ollama: {e}")
+            print("Make sure Ollama is running: ollama serve")
+            sys.exit(1)
+    else:
+        print("Generating metadata with Anthropic Claude...")
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            response = client.messages.create(
+                model="claude-opus-4-5-20251101",
+                max_tokens=2000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            response_text = response.content[0].text.strip()
+        except ImportError:
+            print("Error: 'anthropic' package not installed. Run: pip install anthropic")
+            sys.exit(1)
 
     # Parse JSON response
     json_match = re.search(r'\{[\s\S]*\}', response_text)
@@ -475,6 +519,8 @@ def upload_to_auphonic(
 
 
 def main():
+    global OLLAMA_MODEL
+
     parser = argparse.ArgumentParser(description="Simple video editing with metadata generation")
     parser.add_argument("--video", required=True, help="Path to input video")
     parser.add_argument("--title", required=True, help="YouTube video title")
@@ -488,8 +534,16 @@ def main():
                         help=f"Min silence duration in seconds (default: {SILENCE_MIN_DURATION})")
     parser.add_argument("--upload-only", action="store_true",
                         help="Skip editing, just upload the specified video to Auphonic")
+    parser.add_argument("--llm", choices=["ollama", "anthropic"], default=LLM_BACKEND,
+                        help=f"LLM backend for metadata generation (default: {LLM_BACKEND})")
+    parser.add_argument("--ollama-model", default=OLLAMA_MODEL,
+                        help=f"Ollama model to use (default: {OLLAMA_MODEL})")
 
     args = parser.parse_args()
+
+    # Update globals based on args
+    if args.ollama_model:
+        OLLAMA_MODEL = args.ollama_model
 
     # Validate
     if not os.path.exists(args.video):
@@ -500,8 +554,10 @@ def main():
         print("Error: AUPHONIC_API_KEY not set in .env")
         sys.exit(1)
 
-    if not ANTHROPIC_API_KEY:
+    # Only require Anthropic key if using Anthropic backend
+    if args.llm == "anthropic" and not ANTHROPIC_API_KEY:
         print("Error: ANTHROPIC_API_KEY not set in .env")
+        print("Or use --llm ollama to use free local Ollama instead.")
         sys.exit(1)
 
     # Setup paths
@@ -576,7 +632,7 @@ def main():
     words = transcribe_video(video_path)
 
     # Generate and save metadata
-    metadata = generate_metadata(words, cuts, kept_duration, args.title)
+    metadata = generate_metadata(words, cuts, kept_duration, args.title, llm_backend=args.llm)
     save_metadata(metadata, metadata_path)
 
     # Build YouTube description from template
