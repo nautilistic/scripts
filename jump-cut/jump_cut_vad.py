@@ -5,7 +5,7 @@ Jump Cut Editor v2 - Silero VAD Based
 Uses Silero VAD (Voice Activity Detection) instead of FFmpeg silence detection.
 Much more accurate at detecting actual speech vs silence/noise.
 
-See: directives/jump_cut_vad.md for full documentation.
+See: jump_cut_vad.md for full documentation.
 
 Features:
 - Automatic silence removal using neural voice activity detection
@@ -15,17 +15,17 @@ Features:
 
 Usage:
     # Basic silence removal
-    python execution/jump_cut_vad.py input.mp4 output.mp4
+    python jump-cut/jump_cut_vad.py input.mp4 output.mp4
 
     # With audio enhancement and color grading
-    python execution/jump_cut_vad.py input.mp4 output.mp4 \
+    python jump-cut/jump_cut_vad.py input.mp4 output.mp4 \
         --enhance-audio --apply-lut .tmp/cinematic.cube
 
     # With "cut cut" restart detection
-    python execution/jump_cut_vad.py input.mp4 output.mp4 --detect-restarts
+    python jump-cut/jump_cut_vad.py input.mp4 output.mp4 --detect-restarts
 
     # Fine-tuned parameters
-    python execution/jump_cut_vad.py input.mp4 output.mp4 \
+    python jump-cut/jump_cut_vad.py input.mp4 output.mp4 \
         --min-silence 0.8 --padding 150
 """
 

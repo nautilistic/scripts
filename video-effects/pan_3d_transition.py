@@ -6,18 +6,18 @@ Creates a fast-forward "preview" transition with 3D rotation,
 similar to Premiere Pro's Basic 3D effect. Used for intros,
 scene transitions, or "coming up" previews.
 
-See: directives/pan_3d_transition.md for full documentation.
+See: pan_3d_transition.md for full documentation.
 
 Usage:
     # Basic 1-second transition (uses tuned defaults)
-    python execution/pan_3d_transition.py input.mp4 output.mp4
+    python video-effects/pan_3d_transition.py input.mp4 output.mp4
 
     # 5-second transition with background image
-    python execution/pan_3d_transition.py input.mp4 output.mp4 \
+    python video-effects/pan_3d_transition.py input.mp4 output.mp4 \
         --output-duration 5 --bg-image .tmp/background.png
 
     # Custom 3D effect parameters
-    python execution/pan_3d_transition.py input.mp4 output.mp4 \
+    python video-effects/pan_3d_transition.py input.mp4 output.mp4 \
         --swivel-start 5 --swivel-end -5 --tilt-start 2 --speed 10
 
 Tuned Defaults:
@@ -47,7 +47,7 @@ DEFAULT_OUTPUT_DURATION = 1.0  # 1 second transition
 DEFAULT_EASING = "linear"   # linear, easeOut, easeInOut, or spring
 DEFAULT_BG_COLOR = "#2d3436"  # Soft dark gray (can also use hex like #1a1a2e)
 
-REMOTION_DIR = Path(__file__).parent / "video_effects"
+REMOTION_DIR = Path(__file__).parent / "remotion"
 
 
 def get_video_info(input_path: str) -> dict:

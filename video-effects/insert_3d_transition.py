@@ -6,18 +6,18 @@ Inserts a "swivel teaser" at a specified point in a video - a fast-forward
 preview of video content starting at 1 minute with 3D rotation effects.
 Original audio continues playing throughout.
 
-See: directives/pan_3d_transition.md for effect parameters.
+See: pan_3d_transition.md for effect parameters.
 
 Usage:
     # Insert 5-second swivel teaser at 3 seconds (previews from 1:00 to end)
-    python execution/insert_3d_transition.py input.mp4 output.mp4
+    python video-effects/insert_3d_transition.py input.mp4 output.mp4
 
     # Custom teaser content start point
-    python execution/insert_3d_transition.py input.mp4 output.mp4 \
+    python video-effects/insert_3d_transition.py input.mp4 output.mp4 \
         --teaser-start 90  # Preview starts at 1:30
 
     # With background image
-    python execution/insert_3d_transition.py input.mp4 output.mp4 \
+    python video-effects/insert_3d_transition.py input.mp4 output.mp4 \
         --bg-image .tmp/background.png
 
 Timeline Result:
@@ -33,13 +33,13 @@ import json
 import sys
 from pathlib import Path
 
-# Add execution directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+# Add parent directory to path for shared imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Import the transition creator
+# Import the transition creator (same folder)
 from pan_3d_transition import create_transition, get_video_info
-# Import hardware encoding functions
-from jump_cut_vad import get_cached_encoder_args
+# Import hardware encoding functions from shared utilities
+from shared.ffmpeg_utils import get_cached_encoder_args
 
 DEFAULT_INSERT_AT = 3.0    # Insert transition at 3 seconds
 DEFAULT_DURATION = 5.0     # 5-second transition
