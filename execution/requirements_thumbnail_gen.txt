@@ -1,0 +1,21 @@
+# Requirements for generate_thumbnail.py (simplified local thumbnail generation)
+#
+# Install with: pip install -r requirements_thumbnail_gen.txt
+#
+# GPU Requirements:
+#   - NVIDIA: 10GB+ VRAM recommended (RTX 3060 12GB or better)
+#   - AMD: ROCm support, similar VRAM requirements
+#   - Apple Silicon: Use --device mps
+#   - CPU: Works but very slow (~10 min per image)
+
+torch>=2.0.0
+torchvision>=0.15.0
+diffusers>=0.25.0
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+pillow>=10.0.0
+
+# Optional: better face detection/embedding (improves face consistency)
+# insightface>=0.7.0
+# onnxruntime-gpu>=1.16.0
