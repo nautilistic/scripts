@@ -13,7 +13,7 @@
 #   ./setup_video_editor.sh [OPTIONS]
 #
 # Options:
-#   --faster-whisper   Use faster-whisper instead of openai-whisper
+#   --openai-whisper   Use openai-whisper instead of faster-whisper
 #   --skip-ollama      Skip Ollama setup (if already installed)
 #   --skip-whisper     Skip Whisper installation
 #   --skip-ffmpeg      Skip FFmpeg installation
@@ -27,7 +27,7 @@ set -e
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-USE_FASTER_WHISPER=false
+USE_OPENAI_WHISPER=false  # Default to faster-whisper
 SKIP_OLLAMA=false
 SKIP_WHISPER=false
 SKIP_FFMPEG=false
@@ -73,8 +73,8 @@ check_arch() {
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --faster-whisper)
-            USE_FASTER_WHISPER=true
+        --openai-whisper)
+            USE_OPENAI_WHISPER=true
             shift
             ;;
         --skip-ollama)
@@ -172,23 +172,7 @@ header "Step 3: Whisper (Transcription)"
 
 if [[ "$SKIP_WHISPER" == "true" ]]; then
     info "Skipping Whisper (--skip-whisper)"
-elif [[ "$USE_FASTER_WHISPER" == "true" ]]; then
-    info "Installing faster-whisper..."
-
-    # faster-whisper needs these
-    if python3 -c "import faster_whisper" &> /dev/null; then
-        success "faster-whisper already installed"
-    else
-        $PIP_CMD install --user --break-system-packages faster-whisper 2>/dev/null || \
-        $PIP_CMD install --user faster-whisper
-        success "faster-whisper installed"
-    fi
-
-    echo ""
-    warn "NOTE: simple_video_edit.py uses openai-whisper by default."
-    echo "      You may need to modify transcribe_video() to use faster-whisper."
-    echo "      See: https://github.com/guillaumekln/faster-whisper"
-else
+elif [[ "$USE_OPENAI_WHISPER" == "true" ]]; then
     info "Installing openai-whisper..."
 
     if python3 -c "import whisper" &> /dev/null; then
@@ -198,6 +182,21 @@ else
         $PIP_CMD install --user --break-system-packages openai-whisper 2>/dev/null || \
         $PIP_CMD install --user openai-whisper
         success "openai-whisper installed"
+    fi
+
+    echo ""
+    warn "NOTE: simple_video_edit.py uses faster-whisper by default."
+    echo "      You may need to modify transcribe_video() for openai-whisper."
+else
+    # Default: faster-whisper (faster and more efficient)
+    info "Installing faster-whisper (default, faster than openai-whisper)..."
+
+    if python3 -c "import faster_whisper" &> /dev/null; then
+        success "faster-whisper already installed"
+    else
+        $PIP_CMD install --user --break-system-packages faster-whisper 2>/dev/null || \
+        $PIP_CMD install --user faster-whisper
+        success "faster-whisper installed"
     fi
 fi
 
