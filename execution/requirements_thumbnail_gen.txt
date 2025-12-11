@@ -3,19 +3,15 @@
 # Install with: pip install -r requirements_thumbnail_gen.txt
 #
 # GPU Requirements:
-#   - NVIDIA: 10GB+ VRAM recommended (RTX 3060 12GB or better)
-#   - AMD: ROCm support, similar VRAM requirements
+#   - NVIDIA: 8GB+ VRAM (RTX 3060, 3070, 4060, etc.)
 #   - Apple Silicon: Use --device mps
-#   - CPU: Works but very slow (~10 min per image)
+#   - CPU: Works but very slow (~5-10 min per image)
 
 torch>=2.0.0
-torchvision>=0.15.0
 diffusers>=0.25.0
 transformers>=4.36.0
 accelerate>=0.25.0
-safetensors>=0.4.0
 pillow>=10.0.0
 
-# Optional: better face detection/embedding (improves face consistency)
-# insightface>=0.7.0
-# onnxruntime-gpu>=1.16.0
+# Optional: extra memory savings (recommended for 8GB cards)
+# xformers>=0.0.23

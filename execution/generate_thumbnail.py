@@ -5,7 +5,7 @@ Generate YouTube thumbnails from a reference face photo + text prompt.
 This is a simplified alternative to recreate_thumbnails.py that generates
 NEW thumbnails from scratch rather than face-swapping existing ones.
 
-Uses: Stable Diffusion XL + IP-Adapter FaceID (runs locally, free)
+Uses: Stable Diffusion 1.5 + IP-Adapter FaceID (runs locally, free, 8GB VRAM)
 
 Usage:
     python generate_thumbnail.py --face "reference.jpg" --prompt "excited man explaining AI"
@@ -19,53 +19,42 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from diffusers import StableDiffusionXLPipeline, AutoencoderKL
-from transformers import CLIPVisionModelWithProjection, CLIPImageProcessor
-
-# Optional: for better face preservation
-try:
-    from insightface.app import FaceAnalysis
-    INSIGHTFACE_AVAILABLE = True
-except ImportError:
-    INSIGHTFACE_AVAILABLE = False
+from diffusers import StableDiffusionPipeline
 
 # Paths
 OUTPUT_DIR = Path(__file__).parent.parent / ".tmp" / "thumbnails"
-MODELS_DIR = Path(__file__).parent.parent / ".tmp" / "models"
 
-# Thumbnail dimensions (16:9)
-WIDTH = 1280
-HEIGHT = 720
+# Thumbnail dimensions (16:9) - SD 1.5 works best at 512-768 range
+WIDTH = 768
+HEIGHT = 432  # 16:9 at 768 width
 
 
 class ThumbnailGenerator:
-    """Simple thumbnail generator using SDXL + IP-Adapter."""
+    """Simple thumbnail generator using SD 1.5 + IP-Adapter (8GB VRAM friendly)."""
 
     def __init__(self, device: str = "cuda"):
         self.device = device
         self.pipe = None
-        self.ip_adapter_loaded = False
 
     def load_models(self):
-        """Load SDXL and IP-Adapter models (one-time setup)."""
+        """Load SD 1.5 and IP-Adapter models (one-time setup)."""
         if self.pipe is not None:
             return
 
         print("Loading models (this may take a minute on first run)...")
 
-        # Load SDXL base
-        self.pipe = StableDiffusionXLPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0",
+        # Load SD 1.5 base (much lighter than SDXL)
+        self.pipe = StableDiffusionPipeline.from_pretrained(
+            "runwayml/stable-diffusion-v1-5",
             torch_dtype=torch.float16,
-            variant="fp16",
-            use_safetensors=True,
+            safety_checker=None,
         )
 
         # Load IP-Adapter for face consistency
         self.pipe.load_ip_adapter(
             "h94/IP-Adapter",
-            subfolder="sdxl_models",
-            weight_name="ip-adapter-plus-face_sdxl_vit-h.safetensors"
+            subfolder="models",
+            weight_name="ip-adapter-plus-face_sd15.safetensors"
         )
 
         # Set IP-Adapter scale (0.0-1.0, higher = more face influence)
@@ -73,8 +62,13 @@ class ThumbnailGenerator:
 
         self.pipe.to(self.device)
 
-        # Memory optimization
+        # Memory optimizations for 8GB cards
         self.pipe.enable_attention_slicing()
+        try:
+            self.pipe.enable_xformers_memory_efficient_attention()
+            print("xformers enabled (extra memory savings)")
+        except Exception:
+            pass  # xformers not installed, that's fine
 
         print("Models loaded!")
 

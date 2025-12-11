@@ -66,4 +66,5 @@ python execution/generate_thumbnail.py \
 | Cost | ~$0.20/image (API) | Free (local) |
 | Complexity | 600 lines, pose detection | 200 lines, simple |
 | Flexibility | Limited to source layout | Full creative control |
-| Speed | 10-60s (API latency) | 20-40s (local GPU) |
+| Speed | 10-60s (API latency) | 15-30s (local GPU) |
+| VRAM | N/A (cloud) | 8GB+ (SD 1.5) |
